@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name     Youtube Music Visualizer
+// @name     Youtube Canvas Music Visualizer
 // @version  1
 // @grant    none
 // ==/UserScript==
