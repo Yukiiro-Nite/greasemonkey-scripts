@@ -4,6 +4,9 @@
 // @grant    none
 // ==/UserScript==
 
+const analysisCanvas = document.createElement('canvas')
+const analysisContext = analysisCanvas.getContext('2d')
+let analysisImageData
 let currentMode = 'redBars'
 const modeTransitions = {
   'redBars': undefined,
@@ -27,12 +30,11 @@ function init(videoEl) {
   canvas.id = 'webgl-visualizer'
   setCanvasSize(canvas, videoEl)
   document.body.append(canvas)
-  debugger
   const GlslCanvas = unsafeWindow.GlslCanvas
   const sandbox = new GlslCanvas(canvas)
   setShaders(sandbox, currentMode)
 
-  canvas.addEventListener(() => {
+  canvas.addEventListener('click', () => {
     currentMode = modeTransitions[currentMode]
     setShaders(sandbox, currentMode)
   })
@@ -49,6 +51,9 @@ function setupAnalyser(videoEl) {
   analyser.fftSize = 2048
   const bufferLength = analyser.frequencyBinCount
   dataArray = new Uint8Array(bufferLength)
+  analysisCanvas.width = dataArray.length
+  analysisCanvas.height = 1
+  analysisImageData = new Uint8ClampedArray(bufferLength * 4)
   
   source.connect(analyser)
   analyser.connect(audioContext.destination)
@@ -83,15 +88,31 @@ function draw(canvas, videoEl, sandbox, analyser) {
   setCanvasSize(canvas, videoEl)
 
   analyser.getByteFrequencyData(dataArray)
-  sandbox.setUniform('u_analysis', dataArray)
+  analysisImageData = analysisContext.getImageData(0, 0, dataArray.length, 1)
+  for(let i = 0; i < dataArray.length; i++) {
+    analysisImageData.data[i*4 + 0] = dataArray[i]
+    analysisImageData.data[i*4 + 1] = dataArray[i]
+    analysisImageData.data[i*4 + 2] = dataArray[i]
+    analysisImageData.data[i*4 + 3] = dataArray[i]
+  }
+  analysisContext.putImageData(analysisImageData, 0, 0)
+  sandbox.loadTexture('u_analysis', analysisCanvas)
 
   requestAnimationFrame(() => draw(canvas, videoEl, sandbox, analyser))
 }
 
 function redBars() {
   const frag = `
+  #ifdef GL_ES
+  precision mediump float;
+  #endif
+  uniform vec2 u_resolution;
+  uniform sampler2D u_tex0;
+
   void main() {
-    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    vec2 pos = gl_FragCoord.xy/u_resolution.xy;
+    vec4 textureColor = texture2D(u_tex0, vec2(pos.x, 0.0));
+    gl_FragColor = vec4(1.0, 0.0, 0.0, textureColor.r);
   }
   `
   return {
