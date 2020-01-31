@@ -9,11 +9,13 @@ const analysisContext = analysisCanvas.getContext('2d')
 let analysisImageData
 let currentMode = 'redBars'
 const modeTransitions = {
-  'redBars': undefined,
+  'redBars': 'redBars2',
+  'redBars2': undefined,
   undefined: 'redBars'
 }
 const modes = {
-  redBars
+  redBars,
+  redBars2
 }
 
 let dataArray
@@ -113,6 +115,30 @@ function redBars() {
     vec2 pos = gl_FragCoord.xy/u_resolution.xy;
     vec4 textureColor = texture2D(u_tex0, vec2(pos.x, 0.0));
     gl_FragColor = vec4(textureColor.r, 0.0, 0.0, 1.0);
+  }
+  `
+  return {
+    frag
+  }
+}
+
+function redBars2() {
+  const frag = `
+  #ifdef GL_ES
+  precision mediump float;
+  #endif
+  uniform vec2 u_resolution;
+  uniform sampler2D u_tex0;
+
+  float lessThan(float a, float b) {
+    return floor((sign(b - a) + 1.0) / 2.0);
+  }
+
+  void main() {
+    vec2 pos = gl_FragCoord.xy/u_resolution.xy;
+    vec4 textureColor = texture2D(u_tex0, vec2(pos.x, 0.0));
+    float val = textureColor.r;
+    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0) * sign(val) * lessThan(1.0 - pos.y, val);
   }
   `
   return {
