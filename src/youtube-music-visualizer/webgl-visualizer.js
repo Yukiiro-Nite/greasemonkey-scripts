@@ -112,7 +112,7 @@ function redBars() {
   void main() {
     vec2 pos = gl_FragCoord.xy/u_resolution.xy;
     vec4 textureColor = texture2D(u_tex0, vec2(pos.x, 0.0));
-    gl_FragColor = vec4(1.0, 0.0, 0.0, textureColor.r);
+    gl_FragColor = vec4(textureColor.r, 0.0, 0.0, 1.0);
   }
   `
   return {
